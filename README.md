@@ -1,13 +1,12 @@
-xenstat
-=======
+# xenstat
 
 xentop doesn't provide good 'iostat/vmstat' like output.
 so why not just improve 'xentop' and actully name it xenstat.
 
 
-Usage
-=======
+# Usage
 
+```
 Usage: xenstat [OPTION]
 Displays ongoing information about xen vm resources 
 
@@ -19,11 +18,11 @@ Displays ongoing information about xen vm resources
 -f, --identifier      output the full domain name (not truncated) or domain id
 
 Report bugs to <shimon.zadok@gmail.com>.
+```
 
+# Output example
 
-Output example
-==============
-
+```
 Date: 11/08/13 23:39:15 Domains: 5, 1 running, 4 blocked, 0 paused, 0 crashed, 0 dying, 0 shutdown Mem: 6291000k total, 4798800k used, 1492200k free    CPUs: 2 @ 2109MHz
       NAME(s)  STATE   CPU(sec) CPU(%)     MEM(k) MEM(%)  MAXMEM(k) MAXMEM(%) VCPUS NETS NETTX(k) NETRX(k) VBDS   VBD_OO   VBD_RD   VBD_WR  VBD_RSECT  VBD_WSECT SSID
 Domain-0   r       6403    0.0     523912    8.3   no limit       n/a     2    0        0        0    0        0        0        0          0          0    0
@@ -70,3 +69,4 @@ vbdType device details       OO RD(total) WR(total) RD(sector) WR(sector)
 BlkBack  51714 [ca: 2]         0      3122      1858     107450      94896
 BlkBack  51713 [ca: 1]         0       124         0       1224          0
 ----------------
+```
