@@ -42,7 +42,8 @@
 "Copyright (C) 2005  International Business Machines  Corp\n"\
 "This is free software; see the source for copying conditions.There is NO\n"\
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"
-#define XENTOP_BUGSTO "Report bugs to <xen-tools@lists.xensource.com>.\n"
+
+#define XENTOP_BUGSTO "Report bugs to <shimon.zadok@gmail.com>.\n"
 
 #define _GNU_SOURCE
 #include <getopt.h>
@@ -203,7 +204,7 @@ int show_vbds = 0;
 int show_tmem = 0;
 int repeat_header = 0;
 int show_full_name = 0;
-int identifier = 0;
+int identifier = 1;
 #define PROMPT_VAL_LEN 80
 char *prompt = NULL;
 char prompt_val[PROMPT_VAL_LEN];
@@ -324,7 +325,7 @@ void print_ident(xenstat_domain *domain) {
 			print_domainid(domain);
 			break;
 		default:
-			print("Errorrrrr");
+			print("identifier resulted with invalid number: %d\n", identifier);
 			exit(1);
 			break;
 	}
@@ -333,15 +334,15 @@ void print_ident(xenstat_domain *domain) {
 /* Prints domain name */
 void print_name(xenstat_domain *domain)
 {
-	print("%10.10s", xenstat_domain_name(domain));
+	print("%-10.10s", xenstat_domain_name(domain));
 }
 
 void print_fullname(xenstat_domain *domain) {
-	print("%10s", xenstat_domain_name(domain));
+	print("%-10s", xenstat_domain_name(domain));
 }
 
 void print_domainid(xenstat_domain *domain) {
-	print("%5d", xenstat_domain_id(domain));
+	print("%-10d", xenstat_domain_id(domain));
 }
 
 struct {
@@ -376,9 +377,12 @@ static int compare_state(xenstat_domain *domain1, xenstat_domain *domain2)
 static void print_state(xenstat_domain *domain)
 {
 	unsigned int i;
+	char ch = '-';
+	
 	for(i = 0; i < NUM_STATES; i++)
-		print("%c", state_funcs[i].get(domain) ? state_funcs[i].ch
-		                                       : '-');
+		if (state_funcs[i].get(domain)) ch = state_funcs[i].ch;
+	
+	print("%c", ch);
 }
 
 /* Compares cpu usage of two domains, returning -1,0,1 for <,=,> */
@@ -705,10 +709,9 @@ static void print_ssid(xenstat_domain *domain)
 /* Prints the top summary, above the domain table */
 void do_summary(void)
 {
-#define TIME_STR_LEN 9
-	const char *TIME_STR_FORMAT = "%H:%M:%S";
+#define TIME_STR_LEN 20
+	const char *TIME_STR_FORMAT = "%D %H:%M:%S";
 	char time_str[TIME_STR_LEN];
-	const char *ver_str;
 	unsigned run = 0, block = 0, pause = 0,
 	         crash = 0, dying = 0, shutdown = 0;
 	unsigned i, num_domains = 0;
@@ -721,8 +724,7 @@ void do_summary(void)
 	curt = curtime.tv_sec;
 	strftime(time_str, TIME_STR_LEN, TIME_STR_FORMAT, localtime(&curt));
 	num_domains = xenstat_node_num_domains(cur_node);
-	ver_str = xenstat_node_xen_version(cur_node);
-	print("xentop - %s   Xen %s\n", time_str, ver_str);
+	print("Date: %s ", time_str);
 
 	/* Tabulate what states domains are in for summary */
 	for (i=0; i < num_domains; i++) {
@@ -735,8 +737,8 @@ void do_summary(void)
 		else if (xenstat_domain_dying(domain)) dying++;
 	}
 
-	print("%u domains: %u running, %u blocked, %u paused, "
-	      "%u crashed, %u dying, %u shutdown \n",
+	print("Domains: %u, %u running, %u blocked, %u paused, "
+	      "%u crashed, %u dying, %u shutdown ",
 	      num_domains, run, block, pause, crash, dying, shutdown);
 
 	used = xenstat_node_tot_mem(cur_node)-xenstat_node_free_mem(cur_node);
@@ -788,7 +790,7 @@ void do_domain(xenstat_domain *domain)
 			print(" ");
 		fields[i].print(domain);
 	}
-	print("\n\n");
+	print("\n");
 }
 
 /* Output all vcpu information */
@@ -798,7 +800,7 @@ void do_vcpu(xenstat_domain *domain)
 	unsigned num_vcpus = 0;
 	xenstat_vcpu *vcpu;
 
-	print("VCPUs(sec): ");
+	print("VCPU# VCPUs(sec)\n");
 
 	num_vcpus = xenstat_domain_num_vcpus(domain);
 
@@ -809,7 +811,7 @@ void do_vcpu(xenstat_domain *domain)
 		if (xenstat_vcpu_online(vcpu) > 0) {
 			if (i != 0 && (i%5)==0)
 				print("\n        ");
-			print(" %2u: %10llus", i, 
+			print("%2u %10llus", i, 
 					xenstat_vcpu_ns(vcpu)/1000000000);
 		}
 	}
@@ -822,23 +824,29 @@ void do_network(xenstat_domain *domain)
 	int i = 0;
 	xenstat_network *network;
 	unsigned num_networks = 0;
-
+	
 	/* How many networks? */
 	num_networks = xenstat_domain_num_networks(domain);
-
+	
+	if (num_networks)
+		print("IF# RX[ %12s %10s %8s %8s ] TX[ %12s %10s %8s %8s ]\n", "bytes", "pkts", "err", "drop"
+				, "bytes", "pkts", "err", "drop");
+	
 	/* Dump information for each network */
 	for (i=0; i < num_networks; i++) {
 		/* Next get the network information */
 		network = xenstat_domain_network(domain,i);
-
-		print("Net%d RX: %8llubytes %8llupkts %8lluerr %8lludrop  ",
+		
+		
+		
+		print("%2d      %12llu %10llu %8llu %8llu",
 		      i,
 		      xenstat_network_rbytes(network),
 		      xenstat_network_rpackets(network),
 		      xenstat_network_rerrs(network),
 		      xenstat_network_rdrop(network));
 
-		print("TX: %8llubytes %8llupkts %8lluerr %8lludrop\n",
+		print("       %12llu %10llu %8llu %8llu\n",
 		      xenstat_network_tbytes(network),
 		      xenstat_network_tpackets(network),
 		      xenstat_network_terrs(network),
@@ -861,7 +869,10 @@ void do_vbd(xenstat_domain *domain)
 	};
 	
 	num_vbds = xenstat_domain_num_vbds(domain);
-
+	
+	if (num_vbds)
+		print("vbdType device details       OO RD(total) WR(total) RD(sector) WR(sector)\n");
+	
 	for (i=0 ; i< num_vbds; i++) {
 		char details[20];
 
@@ -874,8 +885,8 @@ void do_vbd(xenstat_domain *domain)
 			 MAJOR(xenstat_vbd_dev(vbd)),
 			 MINOR(xenstat_vbd_dev(vbd)));
 #endif
-
-		print("VBD %s %4d %s OO: %8llu   RD: %8llu   WR: %8llu   RSECT: %10llu   WSECT: %10llu\n",
+		
+		print("%-7s %6d %7s %8llu %9llu %9llu %10llu %10llu\n",
 		      vbd_type[xenstat_vbd_type(vbd)],
 		      xenstat_vbd_dev(vbd), details,
 		      xenstat_vbd_oo_reqs(vbd),
@@ -916,9 +927,11 @@ static void top(void)
 	if (cur_node == NULL)
 		fail("Failed to retrieve statistics from libxenstat\n");
 	
+	//const char *ver_str;
+	//ver_str = xenstat_node_xen_version(cur_node);
 	/* dump summary top information */
 	do_summary();
-	
+		
 	/* Count the number of domains for which to report data */
 	num_domains = xenstat_node_num_domains(cur_node);
 
@@ -940,7 +953,7 @@ static void top(void)
 		
 		if (i == first_domain_index || repeat_header)
 			do_header();
-		
+	
 		do_domain(domains[i]);
 		
 		if (show_vcpus)
@@ -954,6 +967,8 @@ static void top(void)
 		
 		if (show_tmem)
 			do_tmem(domains[i]);
+		
+		print("----------------\n");
 	}
 
 	free(domains);
@@ -969,6 +984,7 @@ static void signal_exit_handler(int sig)
 int which_identifier(char *identifier) {
 	char *identCompare;
 	char *identifierOptions[] = {"invalid", "name", "full", "id"};
+	
 	size_t inputsize = 0, comparesize = 0, size;
 	char found = -1;
 	
@@ -994,7 +1010,7 @@ int which_identifier(char *identifier) {
 int main(int argc, char **argv)
 {
 	int opt, optind = 0;
-	char identifierFound;
+	int identifierFound;
 	
 	struct option lopts[] = {
 		{ "help",				no_argument,       NULL, 'h' },
@@ -1005,7 +1021,7 @@ int main(int argc, char **argv)
 		{ "identifier",			required_argument, NULL, 'f' },
 		{ 0, 0, 0, 0 },
 	};
-	const char *sopts = "hVri:c:f";
+	const char *sopts = "hVri:c:f:";
 	struct sigaction sa = {
 		.sa_handler = signal_exit_handler,
 		.sa_flags = 0
@@ -1039,10 +1055,10 @@ int main(int argc, char **argv)
 		case 'f':
 			identifierFound = which_identifier(optarg);
 			
-			if (identifierFound > 0 && identifierFound < IDENTIFIER_MAXOPTS)
+			if (identifierFound > 0 && identifierFound <= IDENTIFIER_MAXOPTS)
 				identifier = identifierFound;
 			else
-				exit(1);
+				print("Identifier \"%s\" is invalid parameter. %d\n", optarg, identifierFound);
 			
 			break;
 		}
@@ -1052,7 +1068,7 @@ int main(int argc, char **argv)
 	show_networks = 1;
 	show_vbds = 1;
 	show_vcpus = 1;
-	show_tmem = 0;
+	show_tmem = 1;
 	
 	/* Get xenstat handle */
 	xhandle = xenstat_init();
