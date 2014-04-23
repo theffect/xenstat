@@ -23,6 +23,7 @@ CFLAGS += -DGCC_PRINTF -Wall -I$(XEN_LIBXENSTAT)
 LDFLAGS += $(call LDFLAGS_RPATH,../lib)
 LDLIBS += ../libxenstat/src/libxenstat.a $(CURSES_LIBS) $(SOCKET_LIBS)
 LDLIBS += $(LDLIBS_libxenctrl) $(LDLIBS_libxenstore)
+LDLIBS += -lyajl
 CFLAGS += -DHOST_$(XEN_OS)
 
 .PHONY: all
